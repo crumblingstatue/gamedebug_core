@@ -103,7 +103,7 @@ pub fn frame() -> u32 {
 #[macro_export]
 macro_rules! imm_msg {
     ($x:expr) => {{
-        if $crate::ENABLED.load(std::sync::atomic::Ordering::Acquire) {
+        if $crate::enabled() {
             $crate::imm($crate::Info::Msg(format!(
                 concat!(stringify!($x), ": {:?}"),
                 $x
