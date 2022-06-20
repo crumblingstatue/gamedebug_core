@@ -7,18 +7,15 @@
 //! code that reads the information contained in this library and presents it.
 #![warn(missing_docs)]
 
-use lazy_static::lazy_static;
 use std::sync::{
     atomic::{AtomicBool, AtomicU32, Ordering},
     Mutex,
 };
 
-lazy_static! {
-    /// Immediate messages that are for this frame only
-    pub static ref IMMEDIATE: Mutex<Vec<Info>> = Mutex::new(Vec::new());
-    /// Persistent messages that last between frames
-    pub static ref PERSISTENT: Mutex<Vec<PerEntry>> = Mutex::new(Vec::new());
-}
+/// Immediate messages that are for this frame only
+pub static IMMEDIATE: Mutex<Vec<Info>> = Mutex::new(Vec::new());
+/// Persistent messages that last between frames
+pub static PERSISTENT: Mutex<Vec<PerEntry>> = Mutex::new(Vec::new());
 
 static FRAME_COUNTER: AtomicU32 = AtomicU32::new(0);
 
