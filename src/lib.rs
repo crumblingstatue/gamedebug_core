@@ -102,7 +102,7 @@ macro_rules! imm_msg {
     ($x:expr) => {{
         if $crate::enabled() {
             $crate::imm($crate::Info::Msg(format!(
-                concat!(stringify!($x), ": {:?}"),
+                concat!(stringify!($x), ": {:#?}"),
                 $x
             )));
         }
