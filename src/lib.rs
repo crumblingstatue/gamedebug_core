@@ -98,9 +98,17 @@ pub fn frame() -> u32 {
     FRAME_COUNTER.load(Ordering::Acquire)
 }
 
-/// Show an expression as an immediate message
+/// `println!`-like macro for pushing an immediate message
 #[macro_export]
 macro_rules! imm {
+    ($($arg:tt)*) => {{
+        $crate::imm($crate::Info::Msg(format!($($arg)*)));
+    }};
+}
+
+/// `dbg!`-like macro for pushing an immediate message
+#[macro_export]
+macro_rules! imm_dbg {
     ($x:expr) => {{
         if $crate::enabled() {
             $crate::imm($crate::Info::Msg(format!(
@@ -112,7 +120,7 @@ macro_rules! imm {
     }};
 }
 
-/// Format and record a persistent message. It works like `println!`.
+/// `println!`-like macro for pushing a persistent message
 #[macro_export]
 macro_rules! per {
     ($($arg:tt)*) => {{
@@ -120,22 +128,33 @@ macro_rules! per {
     }};
 }
 
+/// `dbg!`-like macro for pushing a persistent message
+#[macro_export]
+macro_rules! per_dbg {
+    ($x:expr) => {{
+        $crate::per($crate::Info::Msg(format!(
+            concat!(stringify!($x), ": {:#?}"),
+            $x
+        )));
+        $x
+    }};
+}
+
 #[test]
 fn test_per() {
     per!("Hello");
-    per!("World");
+    let _n: i32 = per_dbg!(2 * 8) * 4;
     assert_eq!(
         PERSISTENT.lock().unwrap()[0].info,
         Info::Msg("Hello".into())
     );
     assert_eq!(
         PERSISTENT.lock().unwrap()[1].info,
-        Info::Msg("World".into())
+        Info::Msg("2 * 8: 16".into())
     );
     toggle();
     imm!("Hi");
-    assert_eq!(
-        IMMEDIATE.lock().unwrap()[0],
-        Info::Msg("\"Hi\": \"Hi\"".into())
-    );
+    let _n: i32 = imm_dbg!(2 * 8) * 4;
+    assert_eq!(IMMEDIATE.lock().unwrap()[0], Info::Msg("Hi".into()));
+    assert_eq!(IMMEDIATE.lock().unwrap()[1], Info::Msg("2 * 8: 16".into()));
 }
