@@ -21,6 +21,7 @@ static FRAME_COUNTER: AtomicU32 = AtomicU32::new(0);
 
 /// Generic RGBA color struct for coloring certain debug information
 #[derive(Clone, Copy, Debug)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct Color {
     /// Red component
     pub r: u8,
@@ -33,6 +34,7 @@ pub struct Color {
 }
 
 /// Debug information
+#[cfg_attr(test, derive(Debug, PartialEq))]
 pub enum Info {
     /// A text message
     Msg(String),
@@ -98,7 +100,7 @@ pub fn frame() -> u32 {
 
 /// Show an expression as an immediate message
 #[macro_export]
-macro_rules! imm_msg {
+macro_rules! imm {
     ($x:expr) => {{
         if $crate::enabled() {
             $crate::imm($crate::Info::Msg(format!(
@@ -112,8 +114,28 @@ macro_rules! imm_msg {
 
 /// Format and record a persistent message. It works like `println!`.
 #[macro_export]
-macro_rules! per_msg {
+macro_rules! per {
     ($($arg:tt)*) => {{
         $crate::per($crate::Info::Msg(format!($($arg)*)));
     }};
+}
+
+#[test]
+fn test_per() {
+    per!("Hello");
+    per!("World");
+    assert_eq!(
+        PERSISTENT.lock().unwrap()[0].info,
+        Info::Msg("Hello".into())
+    );
+    assert_eq!(
+        PERSISTENT.lock().unwrap()[1].info,
+        Info::Msg("World".into())
+    );
+    toggle();
+    imm!("Hi");
+    assert_eq!(
+        IMMEDIATE.lock().unwrap()[0],
+        Info::Msg("\"Hi\": \"Hi\"".into())
+    );
 }
