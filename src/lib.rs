@@ -87,6 +87,11 @@ pub fn enabled() -> bool {
     ENABLED.load(Ordering::Acquire)
 }
 
+/// Set whether the debug overlay is enabled or not
+pub fn set_enabled(enabled: bool) {
+    ENABLED.store(enabled, Ordering::Release)
+}
+
 /// Increment the frame counter. Do this every frame.
 pub fn inc_frame() {
     let frame = FRAME_COUNTER.load(Ordering::Acquire);
