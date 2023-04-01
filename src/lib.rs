@@ -103,6 +103,20 @@ pub fn frame() -> u32 {
     FRAME_COUNTER.load(Ordering::Acquire)
 }
 
+/// Execute a function for each immediate item
+pub fn for_each_imm(mut f: impl FnMut(&Info)) {
+    for info in &*(IMMEDIATE.lock().unwrap()) {
+        f(info)
+    }
+}
+
+/// Execute a function for each persistent item
+pub fn for_each_per(mut f: impl FnMut(&PerEntry)) {
+    for en in &*(PERSISTENT.lock().unwrap()) {
+        f(en)
+    }
+}
+
 /// `println!`-like macro for pushing an immediate message
 #[macro_export]
 macro_rules! imm {
