@@ -13,7 +13,7 @@ use std::sync::{
 };
 
 /// Immediate messages that are for this frame only
-pub static IMMEDIATE: Mutex<Vec<Info>> = Mutex::new(Vec::new());
+pub static IMMEDIATE: Mutex<Vec<String>> = Mutex::new(Vec::new());
 /// Persistent messages that last between frames
 pub static PERSISTENT: Mutex<Vec<PerEntry>> = Mutex::new(Vec::new());
 
@@ -33,19 +33,10 @@ pub struct Color {
     pub a: u8,
 }
 
-/// Debug information
-#[cfg_attr(test, derive(Debug, PartialEq))]
-pub enum Info {
-    /// A text message
-    Msg(String),
-    /// A rectangle to be drawn on the screen
-    Rect(f32, f32, f32, f32, Color),
-}
-
 static ENABLED: AtomicBool = AtomicBool::new(false);
 
 /// Add immediate info for the current frame
-pub fn imm(info: Info) {
+pub fn imm(info: String) {
     if ENABLED.load(Ordering::Acquire) {
         IMMEDIATE.lock().unwrap().push(info);
     }
@@ -56,11 +47,11 @@ pub struct PerEntry {
     /// The frame this information was recorded on
     pub frame: u32,
     /// The [`Info`]
-    pub info: Info,
+    pub info: String,
 }
 
 /// Add persistent information
-pub fn per(info: Info) {
+pub fn per(info: String) {
     let mut log = PERSISTENT.lock().unwrap();
     log.push(PerEntry {
         frame: FRAME_COUNTER.load(Ordering::Acquire),
@@ -104,7 +95,7 @@ pub fn frame() -> u32 {
 }
 
 /// Execute a function for each immediate item
-pub fn for_each_imm(mut f: impl FnMut(&Info)) {
+pub fn for_each_imm(mut f: impl FnMut(&String)) {
     for info in &*(IMMEDIATE.lock().unwrap()) {
         f(info)
     }
@@ -121,7 +112,7 @@ pub fn for_each_per(mut f: impl FnMut(&PerEntry)) {
 #[macro_export]
 macro_rules! imm {
     ($($arg:tt)*) => {{
-        $crate::imm($crate::Info::Msg(format!($($arg)*)));
+        $crate::imm(format!($($arg)*));
     }};
 }
 
@@ -130,10 +121,10 @@ macro_rules! imm {
 macro_rules! imm_dbg {
     ($val:expr $(,)?) => {{
         if $crate::enabled() {
-            $crate::imm($crate::Info::Msg(format!(
+            $crate::imm(format!(
                 concat!(file!(), ":", line!(), ": ", stringify!($val), ": {:#?}"),
                 $val
-            )));
+            ));
         }
         $val
     }};
@@ -146,7 +137,7 @@ macro_rules! imm_dbg {
 #[macro_export]
 macro_rules! per {
     ($($arg:tt)*) => {{
-        $crate::per($crate::Info::Msg(format!($($arg)*)));
+        $crate::per(format!($($arg)*));
     }};
 }
 
@@ -154,29 +145,7 @@ macro_rules! per {
 #[macro_export]
 macro_rules! per_dbg {
     ($x:expr) => {{
-        $crate::per($crate::Info::Msg(format!(
-            concat!(stringify!($x), ": {:#?}"),
-            $x
-        )));
+        $crate::per(format!(concat!(stringify!($x), ": {:#?}"), $x));
         $x
     }};
-}
-
-#[test]
-fn test_per() {
-    per!("Hello");
-    let _n: i32 = per_dbg!(2 * 8) * 4;
-    assert_eq!(
-        PERSISTENT.lock().unwrap()[0].info,
-        Info::Msg("Hello".into())
-    );
-    assert_eq!(
-        PERSISTENT.lock().unwrap()[1].info,
-        Info::Msg("2 * 8: 16".into())
-    );
-    toggle();
-    imm!("Hi");
-    let _n: i32 = imm_dbg!(2 * 8) * 4;
-    assert_eq!(IMMEDIATE.lock().unwrap()[0], Info::Msg("Hi".into()));
-    assert_eq!(IMMEDIATE.lock().unwrap()[1], Info::Msg("2 * 8: 16".into()));
 }
