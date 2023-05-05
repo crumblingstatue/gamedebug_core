@@ -131,7 +131,7 @@ macro_rules! imm_dbg {
     ($val:expr $(,)?) => {{
         if $crate::enabled() {
             $crate::imm($crate::Info::Msg(format!(
-                concat!(stringify!($val), ": {:#?}"),
+                concat!(file!(), ":", line!(), stringify!($val), ": {:#?}"),
                 $val
             )));
         }
