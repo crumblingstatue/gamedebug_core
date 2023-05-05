@@ -13,20 +13,63 @@ use std::sync::{
 };
 
 /// Immediate messages that are for this frame only
-pub static IMMEDIATE: Mutex<Vec<String>> = Mutex::new(Vec::new());
+pub static IMMEDIATE: MsgBuf<String> = MsgBuf::new();
 /// Persistent messages that last between frames
-pub static PERSISTENT: Mutex<Vec<PerEntry>> = Mutex::new(Vec::new());
+pub static PERSISTENT: MsgBuf<PerEntry> = MsgBuf::new();
 
-static FRAME_COUNTER: AtomicU32 = AtomicU32::new(0);
+/// A statically globally accessible message buffer
+pub struct MsgBuf<Msg> {
+    msgs: Mutex<Vec<Msg>>,
+    enabled: AtomicBool,
+}
 
-static ENABLED: AtomicBool = AtomicBool::new(false);
-
-/// Add immediate info for the current frame
-pub fn imm(info: String) {
-    if ENABLED.load(Ordering::Acquire) {
-        IMMEDIATE.lock().unwrap().push(info);
+impl<Msg> MsgBuf<Msg> {
+    /// Create a new empty message buffer
+    pub const fn new() -> Self {
+        Self {
+            msgs: Mutex::new(Vec::new()),
+            enabled: AtomicBool::new(false),
+        }
+    }
+    /// Push a message to the buffer
+    pub fn push(&self, msg: Msg) {
+        if self.enabled.load(Ordering::Acquire) {
+            self.msgs.lock().unwrap().push(msg);
+        }
+    }
+    /// Toggle whether the buffer is "enabled". If it's not enabled, pushing won't do anything.
+    pub fn toggle(&self) {
+        let current = self.enabled.load(Ordering::Acquire);
+        self.enabled.store(!current, Ordering::Release);
+    }
+    /// Clear the buffer completely
+    pub fn clear(&self) {
+        self.msgs.lock().unwrap().clear();
+    }
+    /// Returns whether the buffer is enabled
+    pub fn enabled(&self) -> bool {
+        self.enabled.load(Ordering::Acquire)
+    }
+    /// Sets the enabled status of the buffer
+    pub fn set_enabled(&self, enabled: bool) {
+        self.enabled.store(enabled, Ordering::Release)
+    }
+    /// Removes old messages from the buffer, until it's `max` length.
+    pub fn trim_old(&self, max: usize) {
+        let mut msgs = self.msgs.lock().unwrap();
+        while msgs.len() > max {
+            msgs.remove(0);
+        }
+    }
+    /// Executes a function for each message in the buffer.
+    pub fn for_each(&self, mut f: impl FnMut(&Msg)) {
+        for en in &*(self.msgs.lock().unwrap()) {
+            f(en)
+        }
     }
 }
+
+static FRAME_COUNTER: AtomicU32 = AtomicU32::new(0);
 
 /// Persistent info entry with a frame stamp
 pub struct PerEntry {
@@ -38,35 +81,11 @@ pub struct PerEntry {
 
 /// Add persistent information
 pub fn per(info: String) {
-    let mut log = PERSISTENT.lock().unwrap();
-    log.push(PerEntry {
-        frame: FRAME_COUNTER.load(Ordering::Acquire),
+    PERSISTENT.push(PerEntry {
+        frame: frame(),
         info,
     });
-    if log.len() > 20 {
-        log.remove(0);
-    }
-}
-
-/// Clear the immediate debug information. Do this every frame after presenting the info.
-pub fn clear_immediates() {
-    IMMEDIATE.lock().unwrap().clear();
-}
-
-/// Toggle the debug overlay
-pub fn toggle() {
-    let current = ENABLED.load(Ordering::Acquire);
-    ENABLED.store(!current, Ordering::Release);
-}
-
-/// Whether the debug overlay is enabled
-pub fn enabled() -> bool {
-    ENABLED.load(Ordering::Acquire)
-}
-
-/// Set whether the debug overlay is enabled or not
-pub fn set_enabled(enabled: bool) {
-    ENABLED.store(enabled, Ordering::Release)
+    PERSISTENT.trim_old(20);
 }
 
 /// Increment the frame counter. Do this every frame.
@@ -80,25 +99,11 @@ pub fn frame() -> u32 {
     FRAME_COUNTER.load(Ordering::Acquire)
 }
 
-/// Execute a function for each immediate item
-pub fn for_each_imm(mut f: impl FnMut(&String)) {
-    for info in &*(IMMEDIATE.lock().unwrap()) {
-        f(info)
-    }
-}
-
-/// Execute a function for each persistent item
-pub fn for_each_per(mut f: impl FnMut(&PerEntry)) {
-    for en in &*(PERSISTENT.lock().unwrap()) {
-        f(en)
-    }
-}
-
 /// `println!`-like macro for pushing an immediate message
 #[macro_export]
 macro_rules! imm {
     ($($arg:tt)*) => {{
-        $crate::imm(format!($($arg)*));
+        $crate::IMMEDIATE.push(format!($($arg)*));
     }};
 }
 
@@ -106,8 +111,8 @@ macro_rules! imm {
 #[macro_export]
 macro_rules! imm_dbg {
     ($val:expr $(,)?) => {{
-        if $crate::enabled() {
-            $crate::imm(format!(
+        if $crate::IMMEDIATE.enabled() {
+            $crate::IMMEDIATE.push(format!(
                 concat!(file!(), ":", line!(), ": ", stringify!($val), ": {:#?}"),
                 $val
             ));
