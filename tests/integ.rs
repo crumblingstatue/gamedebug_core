@@ -8,4 +8,5 @@ fn test() {
     imm!("Hi!");
     per_dbg!(42);
     imm_dbg!(42);
+    imm_dbg!(2, 4, 6);
 }

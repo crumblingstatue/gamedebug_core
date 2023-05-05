@@ -128,15 +128,18 @@ macro_rules! imm {
 /// `dbg!`-like macro for pushing an immediate message
 #[macro_export]
 macro_rules! imm_dbg {
-    ($x:expr) => {{
+    ($val:expr $(,)?) => {{
         if $crate::enabled() {
             $crate::imm($crate::Info::Msg(format!(
-                concat!(stringify!($x), ": {:#?}"),
-                $x
+                concat!(stringify!($val), ": {:#?}"),
+                $val
             )));
         }
-        $x
+        $val
     }};
+    ($($val:expr),+ $(,)?) => {{
+        $($crate::imm_dbg!($val);)+
+    }}
 }
 
 /// `println!`-like macro for pushing a persistent message
