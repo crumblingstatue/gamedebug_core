@@ -13,9 +13,9 @@ use std::sync::{
 };
 
 /// Immediate messages that are for this frame only
-pub static IMMEDIATE: MsgBuf<String> = MsgBuf::new();
+pub static IMMEDIATE: MsgBuf<String> = MsgBuf::new(false);
 /// Persistent messages that last between frames
-pub static PERSISTENT: MsgBuf<PerEntry> = MsgBuf::new();
+pub static PERSISTENT: MsgBuf<PerEntry> = MsgBuf::new(false);
 
 /// A statically globally accessible message buffer
 pub struct MsgBuf<Msg> {
@@ -25,10 +25,10 @@ pub struct MsgBuf<Msg> {
 
 impl<Msg> MsgBuf<Msg> {
     /// Create a new empty message buffer
-    pub const fn new() -> Self {
+    pub const fn new(enabled: bool) -> Self {
         Self {
             msgs: Mutex::new(Vec::new()),
-            enabled: AtomicBool::new(false),
+            enabled: AtomicBool::new(enabled),
         }
     }
     /// Push a message to the buffer
