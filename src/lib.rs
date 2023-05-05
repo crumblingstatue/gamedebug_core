@@ -19,20 +19,6 @@ pub static PERSISTENT: Mutex<Vec<PerEntry>> = Mutex::new(Vec::new());
 
 static FRAME_COUNTER: AtomicU32 = AtomicU32::new(0);
 
-/// Generic RGBA color struct for coloring certain debug information
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(test, derive(PartialEq, Eq))]
-pub struct Color {
-    /// Red component
-    pub r: u8,
-    /// Green component
-    pub g: u8,
-    /// Blue component
-    pub b: u8,
-    /// Alpha component
-    pub a: u8,
-}
-
 static ENABLED: AtomicBool = AtomicBool::new(false);
 
 /// Add immediate info for the current frame
