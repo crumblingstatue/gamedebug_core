@@ -67,6 +67,14 @@ impl<Msg> MsgBuf<Msg> {
             f(en)
         }
     }
+    /// Returns the length of the message buffer
+    pub fn len(&self) -> usize {
+        self.msgs.lock().unwrap().len()
+    }
+    /// Returns whether the message buffer is empty
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 }
 
 static FRAME_COUNTER: AtomicU32 = AtomicU32::new(0);
