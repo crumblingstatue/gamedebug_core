@@ -85,13 +85,36 @@ pub struct PerEntry {
     pub frame: u32,
     /// The [`Info`]
     pub info: String,
+    /// Source code location of the entry, if any
+    pub src_loc: Option<SrcLoc>,
+}
+
+/// Source code location of an entry
+#[allow(missing_docs)]
+pub struct SrcLoc {
+    pub file: &'static str,
+    pub line: u32,
+    pub column: u32,
+}
+
+#[macro_export]
+#[doc(hidden)]
+macro_rules! _gamedebug_core_src_loc {
+    () => {
+        $crate::SrcLoc {
+            file: file!(),
+            line: line!(),
+            column: column!(),
+        }
+    };
 }
 
 /// Add persistent information
-pub fn per(info: String) {
+pub fn per(info: String, src_loc: Option<SrcLoc>) {
     PERSISTENT.push(PerEntry {
         frame: frame(),
         info,
+        src_loc,
     });
     PERSISTENT.trim_old(20);
 }
@@ -136,7 +159,7 @@ macro_rules! imm_dbg {
 #[macro_export]
 macro_rules! per {
     ($($arg:tt)*) => {{
-        $crate::per(format!($($arg)*));
+        $crate::per(format!($($arg)*), Some($crate::_gamedebug_core_src_loc!()));
     }};
 }
 
@@ -144,7 +167,16 @@ macro_rules! per {
 #[macro_export]
 macro_rules! per_dbg {
     ($x:expr) => {{
-        $crate::per(format!(concat!(stringify!($x), ": {:#?}"), $x));
+        $crate::per(
+            format!(concat!(stringify!($x), ": {:#?}"), $x),
+            Some($crate::_gamedebug_core_src_loc!()),
+        );
         $x
     }};
+}
+
+#[test]
+fn basic_macro_sanity_test() {
+    per!("Hi!");
+    per_dbg!(42);
 }
