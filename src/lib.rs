@@ -116,7 +116,6 @@ pub fn per(info: String, src_loc: Option<SrcLoc>) {
         info,
         src_loc,
     });
-    PERSISTENT.trim_old(20);
 }
 
 /// Increment the frame counter. Do this every frame.
