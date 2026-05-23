@@ -8,8 +8,8 @@
 #![warn(missing_docs)]
 
 use std::sync::{
-    atomic::{AtomicBool, AtomicU32, Ordering},
     Mutex,
+    atomic::{AtomicBool, AtomicU32, Ordering},
 };
 
 /// Immediate messages that are for this frame only
