@@ -140,17 +140,21 @@ macro_rules! imm {
 /// `dbg!`-like macro for pushing an immediate message
 #[macro_export]
 macro_rules! imm_dbg {
-    ($val:expr $(,)?) => {{
-        if $crate::IMMEDIATE.enabled() {
-            $crate::IMMEDIATE.push(format!(
-                concat!(file!(), ":", line!(), ": ", stringify!($val), ": {:#?}"),
-                $val
-            ));
+    ($val:expr $(,)?) => {
+        match $val {
+            val => {
+                if $crate::IMMEDIATE.enabled() {
+                    $crate::IMMEDIATE.push(format!(
+                        concat!(file!(), ":", line!(), ": ", stringify!($val), ": {:#?}"),
+                        &val
+                    ));
+                }
+                val
+            }
         }
-        $val
-    }};
+    };
     ($($val:expr),+ $(,)?) => {{
-        $(let _ = $crate::imm_dbg!($val);)+
+        $($crate::imm_dbg!($val);)+
     }}
 }
 
