@@ -150,7 +150,7 @@ macro_rules! imm_dbg {
         $val
     }};
     ($($val:expr),+ $(,)?) => {{
-        $($crate::imm_dbg!($val);)+
+        $(let _ = $crate::imm_dbg!($val);)+
     }}
 }
 
